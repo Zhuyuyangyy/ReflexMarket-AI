@@ -1,0 +1,90 @@
+{
+  "project_name": "ReflexMarket-AI",
+  "project_path": "D:\\ZYY Project\\ReflexMarket-AI",
+  "project_type": "Finance / Market Simulation",
+  "n_python_files": 43,
+  "n_classes": 15,
+  "n_functions": 28,
+  "top_classes": [
+    "InterventionType",
+    "NetworkTopology",
+    "KOLAgent",
+    "InterventionAction",
+    "InterventionResult",
+    "InterventionIntensity",
+    "InterventionStrategy",
+    "InterventionEffect",
+    "RegulatorAgent",
+    "RegulatorState",
+    "KOLNetwork",
+    "InterventionPolicy",
+    "CoolingMechanism",
+    "InvestorProtection",
+    "RegulatorAgent"
+  ],
+  "top_functions": [
+    "test_basic",
+    "run_benchmark",
+    "update_trust",
+    "spread_narrative",
+    "bubble_formation_test",
+    "observe_market",
+    "panic_spread_test",
+    "select_intensity",
+    "propose_intervention",
+    "get_actions_for_intensity",
+    "narrative_reversal_test",
+    "compute_cooldown_duration",
+    "apply_trading_slowdown",
+    "apply_intervention",
+    "manipulation_detection_test",
+    "issue_risk_warning",
+    "apply_warning_decay",
+    "regulation_effectiveness_test",
+    "propagate_narrative",
+    "save_results"
+  ],
+  "package_info": {
+    "requirements": [
+      "﻿fastapi>=0.100.0",
+      "uvicorn>=0.23.0",
+      "loguru>=0.7.0",
+      "pydantic>=2.0.0"
+    ]
+  },
+  "readme_excerpt": "# ReflexMarket-AI\n\n> 叙事驱动的金融反身性多智能体仿真框架\n\n## 核心定位\n\n- **不是量化交易系统** → 市场风险仿真 / 反身性建模 / 异常叙事传播检测 / 监管干预仿真\n- **不声称有真实市场预测能力** → 可控仿真环境下的反身性机制建模，非真实市场价格预测\n\n## 版本路线\n\n```\nV0.2 ✅ Narrative + KOL + Price Feedback + Reflexivity（泡沫/恐慌/反转）\nV0.2-exp ✅ 消融实验（Narrative/KOL/PriceFeedback 三机制贡献度）\nV0.3 ✅ Trust Bootstrapping（信任加权传播，证伪触发信任崩塌）\nV0.4 ✅ ManipulationRiskAgent（异常叙事传播风险识别）\nV0.5 🔜 RegulatorAgent / 监管干预仿真\nV1.0 🔜 Benchmark(50条) + SCI论文 + 专利提交\n```\n\n## 架构\n\n```\nNarrative → Trust → Belief → Emotion → Behavior → Ca",
+  "structure": [
+    {
+      "name": "backend",
+      "type": "dir"
+    },
+    {
+      "name": "demos",
+      "type": "dir"
+    },
+    {
+      "name": "docs",
+      "type": "dir"
+    },
+    {
+      "name": "experiments",
+      "type": "dir"
+    },
+    {
+      "name": "README.md",
+      "type": "file"
+    },
+    {
+      "name": "requirements.txt",
+      "type": "file"
+    },
+    {
+      "name": "src",
+      "type": "dir"
+    },
+    {
+      "name": "start.sh",
+      "type": "file"
+    }
+  ]
+}

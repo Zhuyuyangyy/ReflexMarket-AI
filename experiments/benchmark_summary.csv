@@ -1,0 +1,6 @@
+Scenario ID,Scenario Name,Peak Risk,Test Status
+0,bubble formation,0.867,PASS
+1,panic spread,0.7668,PASS
+2,narrative reversal,0.84,PASS
+3,manipulation detection,0.75,PASS
+4,regulation effectiveness,0.35,PASS

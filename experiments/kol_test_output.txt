@@ -1,0 +1,81 @@
+==================================================
+KOLNetwork Basic Test
+==================================================
+
+[Test 1] STAR topology (n_agents=10)
+  Agents: 10, Hubs: 1
+  Avg followers: 729920, Avg trust: 0.693
+
+[Test 2] DISTRIBUTED topology (n_agents=15)
+  Agents: 15, Hubs: 5
+  Avg followers: 398879, Avg trust: 0.629
+
+[Test 3] VIRAL topology (n_agents=12)
+  Agents: 12, Avg trust: 0.526
+
+[Test 4] Narrative propagation (DISTRIBUTED, 3 rounds)
+  Source: Micro KOL 7
+  Reach rate: 0.5, Reached: 6/12
+  Belief mean: 0.512, Convergence: 0.811
+
+[Test 5] Belief distribution after propagation
+  Mean: 0.512, Median: 0.5
+  Bullish: 0.0%, Bearish: 0.0%, Neutral: 100.0%
+
+[Test 6] Trust update after positive price change (+5%)
+  Trust improved: 12/12 agents
+
+==================================================
+All tests completed successfully!
+==================================================
+
+[Summary JSON]
+{
+  "star_stats": {
+    "topology": "star",
+    "total_agents": 10,
+    "avg_followers": 729920,
+    "avg_trust": 0.693,
+    "avg_influence": 0.59,
+    "hub_count": 1,
+    "micro_count": 0
+  },
+  "distributed_stats": {
+    "topology": "distributed",
+    "total_agents": 15,
+    "avg_followers": 398879,
+    "avg_trust": 0.629,
+    "avg_influence": 0.424,
+    "hub_count": 5,
+    "micro_count": 10
+  },
+  "viral_stats": {
+    "topology": "viral",
+    "total_agents": 12,
+    "avg_followers": 56474,
+    "avg_trust": 0.526,
+    "avg_influence": 0.4,
+    "hub_count": 0,
+    "micro_count": 0
+  },
+  "propagation": {
+    "source": "Micro KOL 7",
+    "reach_rate": 0.5,
+    "belief_mean": 0.512,
+    "convergence": 0.811
+  },
+  "belief": {
+    "mean": 0.512,
+    "median": 0.5,
+    "bullish_pct": 0.0,
+    "bearish_pct": 0.0,
+    "neutral_pct": 1.0
+  },
+  "trust_updates": {
+    "sample_changes": {
+      "kol_hub_00": 0.0331,
+      "kol_hub_01": 0.031,
+      "kol_hub_02": 0.0313
+    }
+  }
+}

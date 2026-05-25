@@ -1,0 +1,21 @@
+============================================================
+ ReflexMarket-AI Benchmark Suite
+============================================================
+Running bubble_formation...
+  -> bubble_formation completed: risk=0.867
+Running panic_spread...
+  -> panic_spread completed: risk=0.7668
+Running narrative_reversal...
+  -> narrative_reversal completed: risk=0.84
+Running manipulation_detection...
+  -> manipulation_detection completed: risk=0.75
+Running regulation_effectiveness...
+  -> regulation_effectiveness completed: risk=0.35
+Saved JSON: D:\ZYY Project\ReflexMarket-AI\experiments\benchmark_results.json
+Saved CSV: D:\ZYY Project\ReflexMarket-AI\experiments\benchmark_summary.csv
+
+Summary:
+  Scenarios: 5
+  Avg Peak Risk: 0.7148
+  Max Risk: 0.867
+============================================================

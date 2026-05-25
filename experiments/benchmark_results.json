@@ -1,0 +1,96 @@
+{
+  "benchmark_timestamp": "2026-05-26T01:08:44.882926",
+  "scenarios": [
+    {
+      "test_name": "Bubble Formation",
+      "duration_steps": 60,
+      "price_start": 100.0,
+      "price_peak": 160.92,
+      "peak_risk": 0.867,
+      "phase_data": [
+        {
+          "step": 55,
+          "price": 155.16,
+          "risk": 0.815,
+          "sentiment": 1.15
+        },
+        {
+          "step": 56,
+          "price": 156.02,
+          "risk": 0.828,
+          "sentiment": 1.16
+        },
+        {
+          "step": 57,
+          "price": 157.89,
+          "risk": 0.841,
+          "sentiment": 1.17
+        },
+        {
+          "step": 58,
+          "price": 159.68,
+          "risk": 0.854,
+          "sentiment": 1.18
+        },
+        {
+          "step": 59,
+          "price": 160.92,
+          "risk": 0.867,
+          "sentiment": 1.19
+        }
+      ],
+      "scenario_id": 0,
+      "scenario_name": "bubble formation"
+    },
+    {
+      "test_name": "Panic Spread",
+      "duration_steps": 40,
+      "price_start": 200.0,
+      "price_trough": 101.87,
+      "peak_panic": 0.852,
+      "peak_risk": 0.7668,
+      "recovery_attempt": true,
+      "scenario_id": 1,
+      "scenario_name": "panic spread"
+    },
+    {
+      "test_name": "Narrative Reversal",
+      "bullish_phase_steps": 25,
+      "reversal_phase_steps": 35,
+      "price_peak": 207.78,
+      "price_final": 132.84,
+      "peak_risk": 0.84,
+      "drop_pct": 36.1,
+      "scenario_id": 2,
+      "scenario_name": "narrative reversal"
+    },
+    {
+      "test_name": "Manipulation Detection",
+      "scenarios_tested": 4,
+      "correctly_detected": 2,
+      "detection_rate": 0.5,
+      "avg_confidence": 0.725,
+      "false_positives": 0,
+      "peak_risk": 0.75,
+      "scenario_id": 3,
+      "scenario_name": "manipulation detection"
+    },
+    {
+      "test_name": "Regulation Effectiveness",
+      "strategies_tested": 4,
+      "best_strategy": "strict",
+      "volatility_reduction_strict": 51.1,
+      "risk_reduction_strict": 68.6,
+      "tradeoff_cost": "Higher compliance burden",
+      "peak_risk": 0.35,
+      "scenario_id": 4,
+      "scenario_name": "regulation effectiveness"
+    }
+  ],
+  "summary": {
+    "total_scenarios": 5,
+    "avg_peak_risk": 0.7148,
+    "max_risk": 0.867,
+    "min_risk": 0.35
+  }
+}
