@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReflexMarket - 市场反身性仿真平台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #0a0e1a; color: #e0e6f0; min-height: 100vh; }
+.header { background: linear-gradient(135deg, #1a2044 0%, #0d1228 100%); border-bottom: 1px solid #2a3a6e; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 20px; font-weight: 700; color: #5b8def; letter-spacing: 1px; }
+.header .badge { background: #5b8def22; border: 1px solid #5b8def55; color: #5b8def; padding: 4px 12px; border-radius: 12px; font-size: 12px; }
+.controls { display: flex; gap: 12px; margin: 20px 24px; }
+.btn { padding: 8px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+.btn-start { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; }
+.btn-start:hover { transform: translateY(-1px); box-shadow: 0 4px 12px #22c55e44; }
+.btn-pause { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+.btn-reset { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+.btn-simulate { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; }
+.dashboard { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; padding: 0 24px 20px; }
+.metric-card { background: #111827; border: 1px solid #1f2d4e; border-radius: 10px; padding: 16px; text-align: center; }
+.metric-card .label { font-size: 12px; color: #6b7fa3; margin-bottom: 8px; }
+.metric-card .value { font-size: 28px; font-weight: 700; }
+.metric-card .value.green { color: #22c55e; }
+.metric-card .value.red { color: #ef4444; }
+.metric-card .value.yellow { color: #f59e0b; }
+.metric-card .value.blue { color: #5b8def; }
+.metric-card .sub { font-size: 11px; color: #4a5a7a; margin-top: 4px; }
+.charts { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; padding: 0 24px 20px; }
+.chart-box { background: #111827; border: 1px solid #1f2d4e; border-radius: 10px; padding: 16px; }
+.chart-box h3 { font-size: 13px; color: #6b8ab8; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px; }
+.chart-container { position: relative; height: 200px; }
+.gauge-container { position: relative; height: 200px; display: flex; align-items: center; justify-content: center; }
+.bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding: 0 24px 20px; }
+.panel { background: #111827; border: 1px solid #1f2d4e; border-radius: 10px; padding: 16px; }
+.panel h3 { font-size: 13px; color: #6b8ab8; margin-bottom: 12px; font-weight: 600; }
+.kol-network { height: 200px; background: #0d1525; border-radius: 8px; position: relative; overflow: hidden; }
+.kol-node { position: absolute; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
+.kol-node:hover { transform: scale(1.15); z-index: 10; }
+.kol-edge { position: absolute; background: #5b8def33; height: 1px; transform-origin: left center; }
+.event-log { height: 200px; overflow-y: auto; }
+.log-entry { padding: 6px 0; border-bottom: 1px solid #1a2540; font-size: 12px; display: flex; gap: 8px; }
+.log-entry .time { color: #4a5a7a; min-width: 50px; }
+.log-entry .tag { padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+.log-entry .tag.greed { background: #22c55e33; color: #22c55e; }
+.log-entry .tag.panic { background: #ef444433; color: #ef4444; }
+.log-entry .tag.neutral { background: #5b8def33; color: #5b8def; }
+.state-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.state-greed { background: #22c55e33; color: #22c55e; border: 1px solid #22c55e55; }
+.state-panic { background: #ef444433; color: #ef4444; border: 1px solid #ef444455; }
+.state-neutral { background: #5b8def33; color: #5b8def; border: 1px solid #5b8def55; }
+.progress-bar { height: 4px; background: #1f2d4e; border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+.status-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #1a2540; font-size: 13px; }
+.status-row:last-child { border-bottom: none; }
+.status-row .key { color: #6b8ab8; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🌊 ReflexMarket-AI <span style="font-size:13px;color:#4a5a7a;font-weight:400">市场反身性多智能体仿真平台</span></h1>
+  <div style="display:flex;gap:12px;align-items:center">
+    <span class="badge">V0.2</span>
+    <span id="simStatus" class="state-badge state-neutral">就绪</span>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-start" onclick="startSim()">▶ 启动仿真</button>
+  <button class="btn btn-pause" onclick="pauseSim()">⏸ 暂停</button>
+  <button class="btn btn-reset" onclick="resetSim()">↺ 重置</button>
+  <button class="btn btn-simulate" onclick="injectShock()">⚡ 市场冲击</button>
+  <select id="shockType" style="background:#1a2540;border:1px solid #2a3a6e;color:#e0e6f0;padding:6px 12px;border-radius:6px">
+    <option value="greed">贪婪事件</option>
+    <option value="panic">恐慌事件</option>
+    <option value="fomo">FOMO扩散</option>
+    <option value="regulation">监管干预</option>
+  </select>
+</div>
+
+<div class="dashboard">
+  <div class="metric-card">
+    <div class="label">价格指数</div>
+    <div class="value blue" id="priceValue">100.0</div>
+    <div class="sub">标准化价格</div>
+    <div class="progress-bar"><div class="progress-fill" id="priceBar" style="width:50%;background:#5b8def"></div></div>
+  </div>
+  <div class="metric-card">
+    <div class="label">情绪指数</div>
+    <div class="value" id="emotionValue">0.50</div>
+    <div class="sub">-1=恐慌 ~ +1=贪婪</div>
+    <div class="progress-bar"><div class="progress-fill" id="emotionBar" style="width:50%;background:#f59e0b"></div></div>
+  </div>
+  <div class="metric-card">
+    <div class="label">信念一致性</div>
+    <div class="value green" id="beliefValue">0.72</div>
+    <div class="sub">市场共识程度</div>
+    <div class="progress-bar"><div class="progress-fill" id="beliefBar" style="width:72%;background:#22c55e"></div></div>
+  </div>
+  <div class="metric-card">
+    <div class="label">叙事传播度</div>
+    <div class="value yellow" id="narrativeValue">0.45</div>
+    <div class="sub">KOL影响力</div>
+    <div class="progress-bar"><div class="progress-fill" id="narrativeBar" style="width:45%;background:#f59e0b"></div></div>
+  </div>
+</div>
+
+<div class="charts">
+  <div class="chart-box" style="grid-column:1">
+    <h3>价格 · 情绪 · 信念 时序曲线</h3>
+    <div class="chart-container">
+      <canvas id="priceChart"></canvas>
+    </div>
+  </div>
+  <div class="chart-box" style="grid-column:2">
+    <h3>市场状态仪表盘</h3>
+    <div class="gauge-container">
+      <canvas id="gaugeChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="bottom">
+  <div class="panel">
+    <h3>KOL 社交传播网络</h3>
+    <div class="kol-network" id="kolNetwork">
+      <canvas id="kolCanvas" width="380" height="200" style="position:absolute;inset:0"></canvas>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>市场状态</h3>
+    <div class="state-row"><span class="key">市场状态</span><span id="marketState" class="state-badge state-neutral">中性</span></div>
+    <div class="state-row"><span class="key">叙事强度</span><span id="narrativeStrength">0.45</span></div>
+    <div class="state-row"><span class="key">资本流向</span><span id="capitalFlow">净流入 +2.3%</span></div>
+    <div class="state-row"><span class="key">反馈延迟</span><span id="feedbackDelay">1.2s</span></div>
+    <div class="state-row"><span class="key">Regulator</span><span id="regulatorStatus">未激活</span></div>
+    <div class="state-row"><span class="key">仿真步数</span><span id="stepCount">0</span></div>
+  </div>
+  <div class="panel">
+    <h3>事件日志</h3>
+    <div class="event-log" id="eventLog"></div>
+  </div>
+</div>
+
+<script>
+// ─── Market State ───────────────────────────────────────────────
+let state = {
+  price: 100, emotion: 0.5, belief: 0.72, narrative: 0.45,
+  step: 0, running: false, interval: null,
+  history: { price: [], emotion: [], belief: [], narrative: [], labels: [] }
+};
+
+// ─── KOL Network ────────────────────────────────────────────────
+const KOL_NODES = [
+  { id: 0, name: 'KOL-1', x: 190, y: 100, r: 22, influence: 0.9, followers: 85000, color: '#ef4444' },
+  { id: 1, name: 'KOL-2', x: 100, y: 60, r: 18, influence: 0.7, followers: 42000, color: '#f59e0b' },
+  { id: 2, name: 'KOL-3', x: 280, y: 60, r: 18, influence: 0.65, followers: 38000, color: '#f59e0b' },
+  { id: 3, name: 'KOL-4', x: 60, y: 140, r: 14, influence: 0.45, followers: 15000, color: '#6366f1' },
+  { id: 4, name: 'KOL-5', x: 320, y: 140, r: 14, influence: 0.4, followers: 12000, color: '#6366f1' },
+  { id: 5, name: '机构', x: 190, y: 30, r: 20, influence: 0.85, followers: 200000, color: '#22c55e' },
+];
+const KOL_EDGES = [[0,5],[0,1],[0,2],[1,3],[2,4],[3,4],[0,3],[0,4]];
+
+// ─── Charts ────────────────────────────────────────────────────
+let priceChart, gaugeChart, kolCtx;
+
+function initCharts() {
+  const priceCtx = document.getElementById('priceChart').getContext('2d');
+  priceChart = new Chart(priceCtx, {
+    type: 'line',
+    data: {
+      labels: [], datasets: [
+        { label: '价格', data: [], borderColor: '#5b8def', backgroundColor: '#5b8def22', tension: 0.4, fill: true, borderWidth: 2 },
+        { label: '情绪', data: [], borderColor: '#f59e0b', backgroundColor: '#f59e0b22', tension: 0.4, fill: false, borderWidth: 2, yAxisID: 'y1' },
+        { label: '信念', data: [], borderColor: '#22c55e', backgroundColor: '#22c55e22', tension: 0.4, fill: false, borderWidth: 2, yAxisID: 'y2' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 0 },
+      scales: {
+        x: { grid: { color: '#1f2d4e' }, ticks: { color: '#6b7fa3', maxTicksLimit: 8 } },
+        y: { type: 'linear', position: 'left', grid: { color: '#1f2d4e' }, ticks: { color: '#6b7fa3' }, min: 50, max: 150 },
+        y1: { type: 'linear', position: 'right', display: false, min: -1, max: 1 },
+        y2: { type: 'linear', display: false, min: 0, max: 1 },
+      },
+      plugins: { legend: { labels: { color: '#6b7fa3', font: { size: 11 } } }
+    }
+  });
+
+  const gaugeCtx = document.getElementById('gaugeChart').getContext('2d');
+  gaugeChart = new Chart(gaugeCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['恐慌', '中性', '贪婪'],
+      datasets: [{ data: [33, 34, 33], backgroundColor: ['#ef4444', '#f59e0b', '#22c55e'], borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: { legend: { display: false } },
+      animation: false,
+    }
+  });
+
+  drawKOLNetwork();
+}
+
+function drawKOLNetwork() {
+  const canvas = document.getElementById('kolCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 380, 200);
+  // Draw edges
+  KOL_EDGES.forEach(([a, b]) => {
+    const na = KOL_NODES[a], nb = KOL_NODES[b];
+    const alpha = Math.max(0.1, (na.influence + nb.influence) / 2 * 0.4);
+    ctx.beginPath();
+    ctx.moveTo(na.x, na.y);
+    ctx.lineTo(nb.x, nb.y);
+    ctx.strokeStyle = `rgba(91,141,239,${alpha})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+  // Draw nodes
+  KOL_NODES.forEach(n => {
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fillStyle = n.color + 'cc';
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = `bold ${n.r > 16 ? 11 : 9}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(n.name, n.x, n.y);
+  });
+}
+
+// ─── Simulation Core ─────────────────────────────────────────────
+function reflexStep() {
+  // Narrative → Belief → Emotion → Behavior → Capital → Price
+  const narrativeDelta = (Math.random() - 0.5) * 0.05;
+  state.narrative = Math.max(0, Math.min(1, state.narrative + narrativeDelta));
+
+  const beliefTarget = state.narrative * 0.8 + (1 - state.emotion) * 0.2;
+  state.belief += (beliefTarget - state.belief) * 0.15;
+
+  const emotionTarget = state.price > 110 ? -0.3 : state.price < 90 ? 0.8 : state.narrative * 1.5 - 0.75;
+  state.emotion += (emotionTarget - state.emotion) * 0.12;
+
+  const behavior = state.emotion * 0.6 + (1 - state.belief) * 0.4;
+  const priceDelta = behavior * 2.0 - (state.price - 100) * 0.1;
+  state.price = Math.max(50, Math.min(150, state.price + priceDelta + (Math.random() - 0.5) * 0.8));
+
+  state.step++;
+
+  // Update UI
+  updateMetrics();
+  pushHistory();
+  updateKOLInfluence();
+  checkRegulator();
+  logEvent();
+}
+
+function updateMetrics() {
+  document.getElementById('priceValue').textContent = state.price.toFixed(1);
+  document.getElementById('emotionValue').textContent = state.emotion.toFixed(2);
+  document.getElementById('beliefValue').textContent = state.belief.toFixed(2);
+  document.getElementById('narrativeValue').textContent = state.narrative.toFixed(2);
+  document.getElementById('stepCount').textContent = state.step;
+
+  const pPct = Math.max(0, Math.min(100, (state.price - 50)));
+  const ePct = Math.max(0, Math.min(100, (state.emotion + 1) * 50));
+  const bPct = state.belief * 100;
+  const nPct = state.narrative * 100;
+  document.getElementById('priceBar').style.width = pPct + '%';
+  document.getElementById('emotionBar').style.width = ePct + '%';
+  document.getElementById('beliefBar').style.width = bPct + '%';
+  document.getElementById('narrativeBar').style.width = nPct + '%';
+
+  // Emotion color
+  const emotionEl = document.getElementById('emotionValue');
+  emotionEl.className = 'value ' + (state.emotion > 0.3 ? 'green' : state.emotion < -0.3 ? 'red' : 'yellow');
+
+  // Market state badge
+  const stateEl = document.getElementById('marketState');
+  if (state.emotion > 0.4) { stateEl.className = 'state-badge state-greed'; stateEl.textContent = '贪婪'; }
+  else if (state.emotion < -0.4) { stateEl.className = 'state-badge state-panic'; stateEl.textContent = '恐慌'; }
+  else { stateEl.className = 'state-badge state-neutral'; stateEl.textContent = '中性'; }
+
+  // Gauge
+  const greed = Math.max(0, Math.min(100, (state.emotion + 1) * 50));
+  gaugeChart.data.datasets[0].data = [
+    Math.max(1, 100 - greed - 33),
+    33,
+    Math.max(1, greed)
+  ];
+  gaugeChart.update('none');
+
+  // Belief/capital
+  document.getElementById('beliefValue').className = 'value ' + (state.belief > 0.6 ? 'green' : state.belief < 0.4 ? 'red' : 'yellow');
+  const flow = (state.emotion > 0 ? '+' : '-') + (Math.abs(state.emotion) * 3).toFixed(1) + '%';
+  document.getElementById('capitalFlow').textContent = '净流入 ' + flow;
+}
+
+function pushHistory() {
+  const maxLen = 60;
+  state.history.price.push(state.price);
+  state.history.emotion.push(state.emotion);
+  state.history.belief.push(state.belief);
+  if (state.history.price.length > maxLen) {
+    state.history.price.shift(); state.history.emotion.shift(); state.history.belief.shift();
+  }
+  const labels = state.history.price.map((_, i) => i);
+  priceChart.data.labels = labels;
+  priceChart.data.datasets[0].data = [...state.history.price];
+  priceChart.data.datasets[1].data = [...state.history.emotion];
+  priceChart.data.datasets[2].data = [...state.history.belief];
+  priceChart.update('none');
+}
+
+function updateKOLInfluence() {
+  // KOL节点随情绪变化大小
+  KOL_NODES.forEach(n => {
+    n.influence = Math.max(0.2, Math.min(1, n.influence + (Math.random() - 0.5) * 0.05));
+    n.r = 10 + n.influence * 12;
+  });
+  drawKOLNetwork();
+}
+
+function checkRegulator() {
+  const regEl = document.getElementById('regulatorStatus');
+  if (Math.abs(state.emotion) > 0.75 || Math.abs(state.price - 100) > 35) {
+    regEl.textContent = '⚠ 干预中';
+    regEl.style.color = '#ef4444';
+    state.emotion *= 0.85;
+    state.price = state.price * 0.92 + 100 * 0.08;
+  } else {
+    regEl.textContent = '未激活';
+    regEl.style.color = '#6b7fa3';
+  }
+}
+
+function logEvent() {
+  if (state.step % 5 !== 0) return;
+  const log = document.getElementById('eventLog');
+  const tag = state.emotion > 0.3 ? 'greed' : state.emotion < -0.3 ? 'panic' : 'neutral';
+  const labels = { greed: '贪婪', panic: '恐慌', neutral: '中性' };
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="time">T+${state.step}</span><span class="tag ${tag}">${labels[tag]}</span><span>P=${state.price.toFixed(1)} E=${state.emotion.toFixed(2)}</span>`;
+  log.insertBefore(entry, log.firstChild);
+  if (log.children.length > 15) log.removeChild(log.lastChild);
+}
+
+// ─── Controls ─────────────────────────────────────────────────
+function startSim() {
+  if (state.running) return;
+  state.running = true;
+  document.getElementById('simStatus').textContent = '运行中';
+  document.getElementById('simStatus').className = 'state-badge state-greed';
+  state.interval = setInterval(reflexStep, 300);
+}
+
+function pauseSim() {
+  state.running = false;
+  clearInterval(state.interval);
+  document.getElementById('simStatus').textContent = '已暂停';
+  document.getElementById('simStatus').className = 'state-badge state-neutral';
+}
+
+function resetSim() {
+  pauseSim();
+  state = { price: 100, emotion: 0.5, belief: 0.72, narrative: 0.45, step: 0, running: false, interval: null,
+    history: { price: [], emotion: [], belief: [], narrative: [], labels: [] } };
+  document.getElementById('eventLog').innerHTML = '';
+  document.getElementById('simStatus').textContent = '就绪';
+  document.getElementById('simStatus').className = 'state-badge state-neutral';
+  updateMetrics();
+  priceChart.data.labels = [];
+  priceChart.data.datasets.forEach(d => d.data = []);
+  priceChart.update();
+}
+
+function injectShock() {
+  const type = document.getElementById('shockType').value;
+  const shockEvents = {
+    greed: () => { state.emotion = 0.9; state.narrative = 0.9; state.price += 15; addLog('⚡ 贪婪事件注入'); },
+    panic: () => { state.emotion = -0.85; state.narrative = 0.7; state.price -= 20; addLog('⚡ 恐慌事件注入'); },
+    fomo: () => { state.narrative = 0.95; state.emotion = 0.5; addLog('⚡ FOMO扩散事件注入'); },
+    regulation: () => { state.emotion *= 0.3; state.price = state.price * 0.85 + 100 * 0.15; addLog('⚡ 监管干预注入'); },
+  };
+  shockEvents[type]();
+  if (!state.running) startSim();
+}
+
+function addLog(msg) {
+  const log = document.getElementById('eventLog');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="time">T+${state.step}</span><span class="tag neutral">SYS</span><span>${msg}</span>`;
+  log.insertBefore(entry, log.firstChild);
+}
+
+// Init
+initCharts();
+updateMetrics();
+</script>
+</body>
+</html>
