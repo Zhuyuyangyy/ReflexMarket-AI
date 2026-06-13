@@ -6,6 +6,11 @@ from datetime import datetime
 import random
 
 
+def set_global_seed(seed: int = 42):
+    """Set global random seed for reproducible experiments."""
+    random.seed(seed)
+
+
 @dataclass
 class MarketNarrative:
     narrative_id: str
@@ -34,7 +39,17 @@ class MarketReflexivitySimulator:
     - 叙事扩散：SIR/IC传播模型
     - 反身性回路：价格上涨 → 信心上升 → 资金流入 → 价格继续上涨
     - 崩溃机制：信心崩塌 → 抛售 → 价格下跌 → 恐慌
+
+    Parameters
+    ----------
+    seed : int, optional
+        Random seed for reproducible experiments. If None, results are non-deterministic.
     """
+
+    def __init__(self, seed: Optional[int] = None):
+        self.seed = seed
+        if seed is not None:
+            random.seed(seed)
 
     def simulate_narrative_spread(self, narrative: MarketNarrative, network_size: int = 1000) -> Dict[str, Any]:
         """

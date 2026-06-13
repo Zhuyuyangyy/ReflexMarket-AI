@@ -3,12 +3,12 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.agents.market_simulator import MarketReflexivitySimulator, MarketNarrative
 
 router = APIRouter(prefix="/api/v1", tags=["ReflexMarket-AI"])
 
-simulator = MarketReflexivitySimulator()
+simulator = MarketReflexivitySimulator(seed=42)
 
 
 class NarrativeSpreadRequest(BaseModel):
@@ -20,6 +20,7 @@ class NarrativeSpreadRequest(BaseModel):
     stage: str = Field(default="emerging", description="阶段: emerging/spreading/dominating/peaking/collapsing")
     belief_ratio: float = Field(default=0.3, description="信念比例 0.0~1.0")
     price_impact: float = Field(default=0.02, description="价格影响系数")
+    seed: Optional[int] = Field(default=None, description="随机种子，用于可复现实验")
 
 
 class ReflexivityLoopRequest(BaseModel):
@@ -27,6 +28,7 @@ class ReflexivityLoopRequest(BaseModel):
     narrative_sentiment: float = Field(default=0.5, description="叙事情绪 -1.0~1.0")
     confidence: float = Field(default=0.7, description="初始信心水平 0.0~1.0")
     ticks: int = Field(default=10, description="仿真步数")
+    seed: Optional[int] = Field(default=None, description="随机种子，用于可复现实验")
 
 
 class ManipulationDetectRequest(BaseModel):
@@ -43,6 +45,10 @@ async def health():
 
 @router.post("/narrative/spread")
 async def simulate_spread(req: NarrativeSpreadRequest):
+    if req.seed is not None:
+        simulator.seed = req.seed
+        import random
+        random.seed(req.seed)
     narrative = MarketNarrative(
         narrative_id=f"NARR-{datetime.now().strftime('%Y%m%d%H%M%S')}",
         content=req.content,
@@ -60,6 +66,10 @@ async def simulate_spread(req: NarrativeSpreadRequest):
 
 @router.post("/reflexivity/loop")
 async def simulate_reflexivity(req: ReflexivityLoopRequest):
+    if req.seed is not None:
+        simulator.seed = req.seed
+        import random
+        random.seed(req.seed)
     result = simulator.simulate_reflexivity_loop(
         initial_price=req.initial_price,
         narrative_sentiment=req.narrative_sentiment,

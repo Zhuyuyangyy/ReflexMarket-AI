@@ -9,6 +9,11 @@ import random
 import math
 
 
+def set_global_seed(seed: int = 42):
+    """Set global random seed for reproducible experiments."""
+    random.seed(seed)
+
+
 class NetworkTopology(Enum):
     STAR = "star"          # One mega-KOL at center
     DISTRIBUTED = "distributed"  # Multiple mid-KOLs
@@ -58,11 +63,14 @@ class KOLNetwork:
     - Belief state convergence
     """
     
-    def __init__(self, topology: NetworkTopology = NetworkTopology.DISTRIBUTED, n_agents: int = 20):
+    def __init__(self, topology: NetworkTopology = NetworkTopology.DISTRIBUTED, n_agents: int = 20, seed: Optional[int] = None):
         self.topology = topology
         self.n_agents = n_agents
+        self.seed = seed
         self.agents: Dict[str, KOLAgent] = {}
         self.network_graph: Dict[str, List[str]] = {}
+        if seed is not None:
+            random.seed(seed)
         self._build_network()
     
     def _build_network(self):
@@ -153,17 +161,20 @@ class KOLNetwork:
             peers = random.sample([a for a in agent_ids if a != aid], n_connections)
             self.network_graph[aid] = peers
     
-    def propagate_narrative(self, narrative: str, source_id: str = None, rounds: int = 3) -> Dict:
+    def propagate_narrative(self, narrative: str, source_id: str = None, rounds: int = 3, seed: Optional[int] = None) -> Dict:
         """
         Propagate narrative through network
-        
+
         Args:
             narrative: The narrative text to propagate
             source_id: Starting KOL agent_id (random if None)
             rounds: Number of propagation rounds
-        
+            seed: Optional random seed for this specific propagation run
+
         Returns propagation report
         """
+        if seed is not None:
+            random.seed(seed)
         if not self.agents:
             return {"error": "No agents in network"}
         
@@ -199,9 +210,13 @@ class KOLNetwork:
                     # Narrative influence based on trust
                     influence = agent.trust * agent.influence_score
                     belief_shift = influence * random.uniform(0.05, 0.15)
-                    
+
                     # Update target belief (move toward narrative sentiment)
-                    target.belief_state = min(1.0, target.belief_state + belief_shift)
+                    # Positive sentiment pushes belief up, negative pushes down
+                    if agent.belief_state >= 0.5:
+                        target.belief_state = min(1.0, target.belief_state + belief_shift)
+                    else:
+                        target.belief_state = max(0.0, target.belief_state - belief_shift)
                     
                     spread_result = agent.spread_narrative(narrative, [target])
                     round_report["spreaders"].append({

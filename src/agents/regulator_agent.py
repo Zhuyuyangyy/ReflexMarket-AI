@@ -14,7 +14,7 @@ ReflexMarket-AI V0.5: RegulatorAgent
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, IntEnum
 
 
 class InterventionAction(Enum):
@@ -25,7 +25,7 @@ class InterventionAction(Enum):
     NO_ACTION = "no_action"
 
 
-class InterventionIntensity(Enum):
+class InterventionIntensity(IntEnum):
     NONE = 0
     LIGHT = 1    # narrative_throttle + risk_warning
     MODERATE = 2 # + kol_downweight

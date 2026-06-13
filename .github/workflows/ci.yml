@@ -1,27 +1,85 @@
 name: CI
+
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
     branches: [main]
 
+env:
+  PYTHON_VERSION: "3.12"
+
 jobs:
+  # ── Lint ────────────────────────────────────────────────────────
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - run: pip install ruff
-      - run: ruff check .
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install Ruff
+        run: pip install ruff
+      - name: Run Ruff Linter
+        run: ruff check .
+      - name: Run Ruff Formatter Check
+        run: ruff format --check .
 
+  # ── Test ────────────────────────────────────────────────────────
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - run: pip install pytest
-      - run: pytest tests/ --ignore=tests/ -x || echo "No tests yet"
+          python-version: ${{ matrix.python-version }}
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+      - name: Run Tests with Coverage
+        run: |
+          pytest tests/ -v --tb=short --cov=backend --cov=src --cov-report=term-missing --cov-report=xml
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend/app
+      - name: Upload Coverage Report
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  # ── Benchmark ──────────────────────────────────────────────────
+  benchmark:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+      - name: Run Benchmark Suite
+        run: |
+          cd experiments
+          python run_benchmark.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend/app:${{ github.workspace }}/src
+
+  # ── Docker Build ───────────────────────────────────────────────
+  docker:
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker Image
+        run: docker build -t reflexmarket-ai:${{ github.sha }} .
+      - name: Test Docker Container
+        run: |
+          docker run -d --name test-container -p 8020:8020 reflexmarket-ai:${{ github.sha }}
+          sleep 5
+          curl -f http://localhost:8020/health || exit 1
+          docker stop test-container

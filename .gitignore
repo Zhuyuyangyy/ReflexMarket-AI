@@ -7,4 +7,7 @@ build/
 venv/
 .env
 .pytest_cache/
-docs/
+docs/demo_evidence_*/
+experiments/benchmark_results.json
+experiments/benchmark_summary.csv
+experiments/benchmark_summary_test.csv
