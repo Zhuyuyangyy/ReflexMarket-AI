@@ -207,5 +207,88 @@ class MarketReflexivitySimulator:
             return "加强信息披露要求，约谈相关市场参与者"
         return "持续监控，不采取干预行动"
 
+    def simulate_narrative_competition(self, narratives: List[MarketNarrative], ticks: int = 12, seed: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Simulate competing narratives fighting for market attention and belief.
+
+        Each tick, narratives compete for a shared "attention budget" (0.0-1.0).
+        Stronger-sentiment narratives win more attention, which feeds back into
+        their belief_ratio. Cross-narrative cannibalization is modeled by reducing
+        the belief_ratio gain of a narrative proportional to the dominant rival's
+        belief_ratio.
+
+        Returns a competition report with per-narrative trajectories and a winner.
+        """
+        if seed is not None:
+            random.seed(seed)
+
+        if not narratives:
+            return {"error": "narratives list is empty", "winner": None, "ranking": []}
+
+        # Snapshot initial state
+        state = [
+            {
+                "id": n.narrative_id,
+                "content": n.content,
+                "sentiment": n.sentiment,
+                "belief_ratio": n.belief_ratio,
+                "reach": n.reach,
+                "trajectory": [],
+            }
+            for n in narratives
+        ]
+
+        winner = None
+        for t in range(ticks):
+            total_attention = sum(max(0.0, s["sentiment"]) for s in state) or 1.0
+
+            for s in state:
+                # Attention share proportional to positive sentiment + reach
+                attention_share = max(0.0, s["sentiment"]) / total_attention
+                # Base growth, scaled by attention share
+                base_growth = attention_share * 0.08
+                # Cannibalization: dominant rival reduces growth
+                rival_strength = max(
+                    (other["belief_ratio"] for other in state if other["id"] != s["id"]),
+                    default=0.0,
+                )
+                cannibalization = rival_strength * 0.04
+                s["belief_ratio"] = max(0.0, min(0.99, s["belief_ratio"] + base_growth - cannibalization))
+                s["reach"] = int(s["reach"] * (1.0 + attention_share * 0.5))
+                s["trajectory"].append({
+                    "tick": t,
+                    "belief_ratio": round(s["belief_ratio"], 4),
+                    "reach": s["reach"],
+                })
+
+        # Final ranking
+        ranking = sorted(state, key=lambda s: s["belief_ratio"], reverse=True)
+        winner = ranking[0]
+
+        return {
+            "ticks": ticks,
+            "num_narratives": len(state),
+            "ranking": [
+                {
+                    "rank": i + 1,
+                    "narrative_id": s["id"],
+                    "content": s["content"],
+                    "final_belief_ratio": round(s["belief_ratio"], 4),
+                    "final_reach": s["reach"],
+                    "sentiment": s["sentiment"],
+                }
+                for i, s in enumerate(ranking)
+            ],
+            "winner": {
+                "narrative_id": winner["id"],
+                "content": winner["content"],
+                "final_belief_ratio": round(winner["belief_ratio"], 4),
+            },
+            "belief_diversity_index": round(
+                1.0 - sum(s["belief_ratio"] ** 2 for s in state), 4
+            ),
+            "trajectories": {s["id"]: s["trajectory"] for s in state},
+        }
+
     def to_dict(self, narrative: MarketNarrative) -> Dict[str, Any]:
         return {"narrative_id": narrative.narrative_id, "content": narrative.content, "sentiment": narrative.sentiment, "spread_velocity": narrative.spread_velocity, "reach": narrative.reach, "confidence": narrative.confidence, "stage": narrative.stage, "belief_ratio": narrative.belief_ratio, "price_impact": narrative.price_impact}

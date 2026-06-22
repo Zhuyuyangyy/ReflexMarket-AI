@@ -207,8 +207,8 @@ class RegulatorAgent:
         # 3. 根据风险评分选择干预强度
         new_intensity = self.policy.select_intensity(risk_score, market_state)
 
-        # 4. 如果风险降低，尝试降级干预
-        if new_intensity < self.current_intensity:
+        # 4. 调整干预强度（升级/降级）
+        if new_intensity != self.current_intensity:
             self._escalate_or_deescalate(new_intensity)
             self.current_intensity = new_intensity
 
@@ -222,16 +222,24 @@ class RegulatorAgent:
             effect = self._apply_action(action, risk_score, market_state)
             effects.append(effect)
 
-        # 6. 更新KOL降权
-        if self.state.kol_penalty < 1.0 and kol_agents:
+        # 6. 更新KOL降权（使用绝对赋值避免每步复合衰减）
+        if kol_agents:
             for kol in kol_agents:
                 if hasattr(kol, 'influence_weight'):
-                    kol.influence_weight *= self.state.kol_penalty
+                    base = getattr(kol, '_regulator_base_influence', None)
+                    if base is None:
+                        base = kol.influence_weight
+                        kol._regulator_base_influence = base
+                    kol.influence_weight = base * self.state.kol_penalty
 
-        # 7. 更新叙事限流
-        if self.state.narrative_cap < 1.0 and narrative_agent_ref:
+        # 7. 更新叙事限流（使用绝对赋值避免每步复合衰减）
+        if narrative_agent_ref:
             if hasattr(narrative_agent_ref, 'generation_rate'):
-                narrative_agent_ref.generation_rate *= self.state.narrative_cap
+                base = getattr(narrative_agent_ref, '_regulator_base_generation_rate', None)
+                if base is None:
+                    base = narrative_agent_ref.generation_rate
+                    narrative_agent_ref._regulator_base_generation_rate = base
+                narrative_agent_ref.generation_rate = base * self.state.narrative_cap
 
         # 8. 记录本步干预效果
         if effects:
@@ -287,10 +295,15 @@ class RegulatorAgent:
 
     def _check_cooldown_expiry(self):
         """检查干预冷却是否过期"""
-        expired_actions = []
-        for action_str, steps in self.state.intervention_steps_remaining.items():
-            if steps <= 0:
-                expired_actions.append(action_str)
+        # 步减所有干预持续时间
+        for k in list(self.state.intervention_steps_remaining.keys()):
+            self.state.intervention_steps_remaining[k] -= 1
+
+        # 收集已过期的干预（从正数递减到 0 或更低）
+        expired_actions = [
+            action_str for action_str, steps in self.state.intervention_steps_remaining.items()
+            if steps <= 0
+        ]
 
         for action_str in expired_actions:
             del self.state.intervention_steps_remaining[action_str]
@@ -303,18 +316,24 @@ class RegulatorAgent:
             elif action_str == InterventionAction.KOL_DOWNWEIGHT.value:
                 self.state.kol_penalty = 1.0
 
-        # 步减所有干预持续时间
-        for k in self.state.intervention_steps_remaining:
-            self.state.intervention_steps_remaining[k] = max(0, self.state.intervention_steps_remaining[k] - 1)
-
     def _escalate_or_deescalate(self, new_intensity: InterventionIntensity):
         """调整干预强度"""
         if new_intensity > self.current_intensity:
-            # 升级干预：新动作逐步加入
-            pass
+            # 升级干预：清空旧干预的持续时间，让新动作在 _apply_action 中重新计算
+            self.state.intervention_steps_remaining.clear()
         elif new_intensity < self.current_intensity:
-            # 降级干预：冷却旧动作
-            pass
+            # 降级干预：移除超出新强度范围的干预动作，并重置其状态变量
+            if new_intensity < InterventionIntensity.MODERATE:
+                self.state.kol_penalty = 1.0
+                self.state.intervention_steps_remaining.pop(
+                    InterventionAction.KOL_DOWNWEIGHT.value, None
+                )
+            if new_intensity < InterventionIntensity.STRONG:
+                self.state.cooldown_active = False
+                self.state.trading_slowdown = 0.0
+                self.state.intervention_steps_remaining.pop(
+                    InterventionAction.TRADING_COOLDOWN.value, None
+                )
 
     def _aggregate_effects(self, effects: List[InterventionEffect]) -> InterventionEffect:
         """聚合多个动作的效果"""

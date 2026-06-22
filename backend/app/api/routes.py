@@ -38,6 +38,24 @@ class ManipulationDetectRequest(BaseModel):
     volume_anomaly: float
 
 
+class NarrativeItem(BaseModel):
+    narrative_id: str
+    content: str = ""
+    sentiment: float
+    reach: int = 100
+    belief_ratio: float = 0.3
+    confidence: float = 0.7
+    spread_velocity: float = 0.5
+    stage: str = "emerging"
+    price_impact: float = 0.02
+
+
+class CompetitionRequest(BaseModel):
+    narratives: List[NarrativeItem] = Field(..., description="竞争中的多条叙事")
+    ticks: int = Field(default=12, description="仿真步数", ge=1, le=100)
+    seed: Optional[int] = Field(default=None, description="随机种子")
+
+
 @router.get("/health")
 async def health():
     return {"status": "healthy", "service": "ReflexMarket-AI", "version": "0.1.0"}
@@ -93,4 +111,27 @@ async def detect_manipulation(req: ManipulationDetectRequest):
         price_impact=0.05,
     )
     result = simulator.detect_manipulation_risk(narrative, req.trading_volume, req.volume_anomaly)
+    return {"status": "success", "data": result}
+
+
+@router.post("/narrative/competition")
+async def simulate_competition(req: CompetitionRequest):
+    """Simulate multiple narratives competing for market attention and belief."""
+    narratives = [
+        MarketNarrative(
+            narrative_id=item.narrative_id,
+            content=item.content,
+            sentiment=item.sentiment,
+            spread_velocity=item.spread_velocity,
+            reach=item.reach,
+            confidence=item.confidence,
+            stage=item.stage,
+            belief_ratio=item.belief_ratio,
+            price_impact=item.price_impact,
+        )
+        for item in req.narratives
+    ]
+    result = simulator.simulate_narrative_competition(
+        narratives, ticks=req.ticks, seed=req.seed
+    )
     return {"status": "success", "data": result}
